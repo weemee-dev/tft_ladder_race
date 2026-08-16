@@ -6,13 +6,11 @@ class SignInScreen extends StatefulWidget {
     super.key,
     required this.onAnonymousSignInPressed,
     required this.onEmailSignInPressed,
-    required this.onRegisterPressed,
   });
 
   final Future<void> Function() onAnonymousSignInPressed;
   final Future<void> Function(String email, String password)
       onEmailSignInPressed;
-  final Future<void> Function(String email, String password) onRegisterPressed;
 
   @override
   State<SignInScreen> createState() => _SignInScreenState();
@@ -44,19 +42,6 @@ class _SignInScreenState extends State<SignInScreen> {
 
     await _runAuthAction(() async {
       await widget.onEmailSignInPressed(
-        _emailController.text.trim(),
-        _passwordController.text,
-      );
-    });
-  }
-
-  Future<void> _handleRegister() async {
-    if (!_isFormValid()) {
-      return;
-    }
-
-    await _runAuthAction(() async {
-      await widget.onRegisterPressed(
         _emailController.text.trim(),
         _passwordController.text,
       );
@@ -113,6 +98,10 @@ class _SignInScreenState extends State<SignInScreen> {
         return 'Diese E-Mail wird bereits verwendet.';
       case 'weak-password':
         return 'Passwort ist zu kurz (mindestens 6 Zeichen).';
+      case 'operation-not-allowed':
+        return 'E-Mail-Login ist in Firebase noch nicht aktiviert.';
+      case 'too-many-requests':
+        return 'Zu viele Versuche. Bitte kurz warten.';
       default:
         return 'Authentifizierung fehlgeschlagen.';
     }
@@ -136,13 +125,13 @@ class _SignInScreenState extends State<SignInScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'Firebase Auth Grundsetup',
+                    'TFT LADDER RACE',
                     style: Theme.of(context).textTheme.headlineSmall,
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 12),
                   const Text(
-                    'Melde dich mit E-Mail/Passwort an oder registriere einen neuen Account.',
+                    'Melde dich an und schau, wer gerade die Lobby dominiert.',
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 24),
@@ -191,14 +180,6 @@ class _SignInScreenState extends State<SignInScreen> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Text('Einloggen'),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: _isLoading ? null : _handleRegister,
-                      child: const Text('Registrieren'),
                     ),
                   ),
                   const SizedBox(height: 8),

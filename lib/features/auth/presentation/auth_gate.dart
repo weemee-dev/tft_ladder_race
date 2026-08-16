@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../home/presentation/home_screen.dart';
+import '../../home/data/ladder_data_service.dart';
 import '../data/auth_service.dart';
 import 'sign_in_screen.dart';
 
@@ -33,17 +34,12 @@ class AuthGate extends StatelessWidget {
                 password: password,
               );
             },
-            onRegisterPressed: (email, password) async {
-              await authService.createUserWithEmailAndPassword(
-                email: email,
-                password: password,
-              );
-            },
           );
         }
 
         return HomeScreen(
           user: user,
+          ladderDataService: LadderDataService(),
           onSignOutPressed: () async {
             await authService.signOut();
           },

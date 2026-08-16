@@ -57,12 +57,123 @@ Ja, das ist sinnvoll. Du kannst dieses Repo als Starter behalten und pro neuem P
 - `lib/features/auth/presentation/sign_in_screen.dart`: Login-Startseite
 - `lib/features/home/presentation/home_screen.dart`: Beispielseite nach Login
 
+## Feste Benutzer anlegen und einloggen
+
+Damit nur du und deine drei Freunde Zugriff haben, werden die Konten einmalig in
+der Firebase Console angelegt. Die App enthält absichtlich keine Registrierung
+und keine Passwörter.
+
+1. Öffne in der Firebase Console `Authentication` -> `Sign-in method`.
+2. Aktiviere `Email/Password` und speichere.
+3. Öffne `Authentication` -> `Users` -> `Add user`.
+4. Lege dort vier E-Mail-/Passwort-Konten an, zum Beispiel eines pro Freund.
+5. Starte die App mit `flutter run -d chrome` und melde dich mit einem dieser
+	Konten an.
+
+Der Button `Oder anonym anmelden` ist nur für lokale Tests gedacht. Wenn du ihn
+nicht brauchst, kannst du `Anonymous` in Firebase deaktiviert lassen. Falls der
+Login mit `operation-not-allowed` scheitert, ist `Email/Password` in Schritt 2
+noch nicht aktiviert oder Firebase wurde mit dem falschen Projekt verbunden.
+
 ## Firebase Auth aktivieren
 
-In der Firebase Console unter Authentication -> Sign-in method aktivieren:
+Für den festen Login ist nur dieser Provider erforderlich:
 
 - Email/Password
-- Anonymous (optional, wenn du den Fallback-Button nutzen willst)
+
+Anonymous bleibt optional und wird nur vom Test-Button verwendet.
+
+## Riot API sicher mit Firebase verbinden
+
+Der Riot-Key gehört nicht in Flutter, `firebase_options.dart`, Firestore oder
+Git. Die Cloud Function liest ihn aus dem Firebase Secret Manager. Auch die
+Riot-Abfragen laufen ausschließlich in `functions/`, nie im Browser.
+
+### Einmalige Einrichtung
+
+Voraussetzungen: Firebase CLI, Node.js 20 und ein Firebase-Projekt im Blaze-
+Tarif. Die Function läuft in `europe-west1` (Belgien), während die Riot-API über
+die EU-Routen `europe` und `euw1` angesprochen wird. Scheduled Cloud Functions
+benötigen den Blaze-Tarif, weil Cloud Scheduler verwendet wird.
+
+1. Firebase CLI anmelden und das Projekt auswählen:
+
+	 ```powershell
+	 firebase login
+	 firebase use tft-ladder-race
+	 ```
+
+2. Den Riot-Key interaktiv im Firebase Secret Manager hinterlegen:
+
+	 ```powershell
+	 firebase functions:secrets:set RIOT_API_KEY
+	 ```
+
+	 Den Key niemals in den Chat, in den Flutter-Code oder in eine versionierte
+	 Datei eintragen. Falls der Key bereits öffentlich geteilt wurde, im Riot
+	 Developer Portal sofort einen neuen Key erzeugen.
+
+3. In Firestore das Dokument `race_config/players` anlegen. Das Feld `players`
+	 ist ein Array mit exakt vier Einträgen. Für EUW sieht die Struktur so aus:
+
+	 ```json
+	 {
+		 "players": [
+			 {
+				 "id": "friend-1",
+				 "name": "Mango",
+				 "gameName": "RiotName1",
+				 "tagLine": "EUW",
+				 "startLeaguePoints": 0
+			 },
+			 {
+				 "id": "friend-2",
+				 "name": "Kira",
+				 "gameName": "RiotName2",
+				 "tagLine": "EUW",
+				 "startLeaguePoints": 0
+			 },
+			 {
+				 "id": "friend-3",
+				 "name": "Rex",
+				 "gameName": "RiotName3",
+				 "tagLine": "EUW",
+				 "startLeaguePoints": 0
+			 },
+			 {
+				 "id": "friend-4",
+				 "name": "Nova",
+				 "gameName": "RiotName4",
+				 "tagLine": "EUW",
+				 "startLeaguePoints": 0
+			 }
+		 ]
+	 }
+	 ```
+
+	 `gameName` und `tagLine` müssen exakt der Riot-ID entsprechen. Der Wert
+	 `startLeaguePoints` wird beim ersten Placement Game festgehalten; aktuell
+	 muss er zunächst manuell eingetragen werden. `lpGain` wird danach von der
+	 Function als aktuelles LP minus Start-LP berechnet.
+
+4. Function und Firestore-Regeln deployen:
+
+	 ```powershell
+	 Push-Location functions
+	 npm install
+	 npm run build
+	 Pop-Location
+	 firebase deploy --only functions,firestore
+	 ```
+
+	 Nach dem Deploy wird `refreshLadderData` automatisch ungefähr stündlich
+	 ausgeführt und schreibt nach `ladder_data/current`.
+
+Die App liest dieses Dokument nur für angemeldete Firebase-Nutzer. Schreibzugriff
+auf `ladder_data` und `race_config` ist durch `firestore.rules` gesperrt; die
+Function verwendet für ihre Schreibvorgänge das Admin SDK und ist davon nicht
+betroffen.
+
 
 ## Copilot Workflow fuer neue Projekte
 

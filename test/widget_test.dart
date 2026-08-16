@@ -11,7 +11,6 @@ void main() {
         home: SignInScreen(
           onAnonymousSignInPressed: _noOpSignIn,
           onEmailSignInPressed: _noOpEmailSignIn,
-          onRegisterPressed: _noOpEmailSignIn,
         ),
       ),
     );
