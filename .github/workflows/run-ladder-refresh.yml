@@ -1,0 +1,27 @@
+name: Run Ladder Refresh
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Run Cloud Scheduler job
+        run: >-
+          gcloud scheduler jobs run
+          firebase-schedule-refreshLadderData-europe-west1
+          --location=europe-west1
+          --project=tft-ladder-race

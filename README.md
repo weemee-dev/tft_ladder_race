@@ -174,6 +174,31 @@ auf `ladder_data` und `race_config` ist durch `firestore.rules` gesperrt; die
 Function verwendet für ihre Schreibvorgänge das Admin SDK und ist davon nicht
 betroffen.
 
+## GitHub Actions
+
+Das Repository enthält drei getrennte Workflows unter `.github/workflows/`:
+
+- `deploy.yml`: baut und deployed die Flutter-Web-App zu Firebase Hosting.
+- `deploy-functions.yml`: baut und deployed `refreshLadderData`.
+- `run-ladder-refresh.yml`: startet den Cloud-Scheduler-Job manuell.
+
+Für `deploy.yml` und `deploy-functions.yml` wird das GitHub-Secret
+`FIREBASE_TOKEN` benötigt. Es kann lokal mit folgendem Befehl erzeugt werden:
+
+```powershell
+firebase login:ci
+```
+
+Für `run-ladder-refresh.yml` wird zusätzlich das Secret `GCP_SA_KEY` benötigt.
+Darin liegt der JSON-Schlüssel eines Google-Service-Accounts mit mindestens der
+Rolle `Cloud Scheduler Job Runner` im Projekt `tft-ladder-race`. Der Account
+muss außerdem den Scheduler-Job in `europe-west1` ausführen dürfen.
+
+Der Function-Deploy läuft automatisch bei Änderungen unter `functions/` auf
+`main` und kann zusätzlich manuell gestartet werden. Der Scheduler-Workflow
+läuft ausschließlich manuell über `Actions` -> `Run Ladder Refresh` -> `Run
+workflow`.
+
 
 ## Copilot Workflow fuer neue Projekte
 
