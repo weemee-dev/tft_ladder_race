@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 
 import '../data/ladder_data_service.dart';
@@ -23,9 +24,9 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: Row(
           children: [
-            const Flexible(child: Text('TFT LADDER RACE', overflow: TextOverflow.ellipsis)),
-            const SizedBox(width: 12),
-            const _DeadlineChip(),
+            Image.asset('web/favicon.png', width: 28, height: 28),
+            const SizedBox(width: 8),
+            const Flexible(child: Text('RezQ TFT LADDER RACE', overflow: TextOverflow.ellipsis)),
           ],
         ),
         actions: [
@@ -58,7 +59,7 @@ class HomeScreen extends StatelessWidget {
           if (snapshot.data == null || snapshot.data!.isEmpty) {
             return const Center(child: Text('Noch keine Ladder-Daten synchronisiert.'));
           }
-          return DashboardBody(user: user, livePlayers: snapshot.data);
+          return DashboardBody(ladderDataService: ladderDataService, livePlayers: snapshot.data);
         },
       ),
     );
@@ -66,9 +67,9 @@ class HomeScreen extends StatelessWidget {
 }
 
 class DashboardBody extends StatelessWidget {
-  const DashboardBody({super.key, required this.user, this.livePlayers});
+  const DashboardBody({super.key, required this.ladderDataService, this.livePlayers});
 
-  final User user;
+  final LadderDataService ladderDataService;
   final List<LadderPlayer>? livePlayers;
 
   @override
@@ -78,7 +79,8 @@ class DashboardBody extends StatelessWidget {
     final averagePlacement = players
         .where((player) => player.matchesPlayed > 0)
         .fold<double>(0, (sum, player) => sum + player.average);
-    final rankedPlayers = [...players]..sort((a, b) => b.elo.compareTo(a.elo));
+    final rankedPlayers = [...players]..sort((a, b) => rankScore(b).compareTo(rankScore(a)));
+    final scoutingPlayers = [...players]..sort((a, b) => rankScore(b).compareTo(rankScore(a)));
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
       child: Center(
@@ -87,7 +89,11 @@ class DashboardBody extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _WelcomeHeader(email: user.email),
+              Row(children: [
+                const Expanded(child: RaceCountdown()),
+                const SizedBox(width: 10),
+                _RefreshButton(ladderDataService: ladderDataService),
+              ]),
               const SizedBox(height: 20),
               const SizedBox(height: 8),
               Row(
@@ -97,8 +103,6 @@ class DashboardBody extends StatelessWidget {
                   Text('${players.length}/4 PLAYERS · $totalMatches MATCHES TRACKED', style: const TextStyle(color: Colors.white54, fontSize: 11)),
                 ],
               ),
-                  const SizedBox(height: 5),
-                  const Text('Wie oft landet jeder Spieler auf Platz 1 bis 8? Grün = Top 4, Orange = Bottom 4.', style: TextStyle(color: Colors.white54, fontSize: 10)),
               const SizedBox(height: 10),
               LayoutBuilder(builder: (context, constraints) {
                 final columns = constraints.maxWidth > 760 ? 4 : 2;
@@ -106,7 +110,7 @@ class DashboardBody extends StatelessWidget {
                   crossAxisCount: columns,
                   crossAxisSpacing: 10,
                   mainAxisSpacing: 10,
-                  childAspectRatio: columns == 4 ? 1.55 : 1.9,
+                  childAspectRatio: columns == 4 ? 2.35 : 2.6,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   children: [
@@ -142,8 +146,6 @@ class DashboardBody extends StatelessWidget {
                 },
               ),
               const SizedBox(height: 26),
-              PlacementChart(players: players),
-              const SizedBox(height: 26),
               Text('SPIELER IM SCOUTING', style: Theme.of(context).textTheme.labelLarge),
               const SizedBox(height: 10),
               LayoutBuilder(
@@ -158,7 +160,7 @@ class DashboardBody extends StatelessWidget {
                   return Wrap(
                     spacing: gap,
                     runSpacing: gap,
-                    children: players.map((player) => SizedBox(
+                    children: scoutingPlayers.map((player) => SizedBox(
                       width: itemWidth,
                       child: PlayerCard(player: player),
                     )).toList(),
@@ -201,45 +203,79 @@ class DashboardBody extends StatelessWidget {
   }
 }
 
-class _WelcomeHeader extends StatelessWidget {
-  const _WelcomeHeader({required this.email});
+class _RefreshButton extends StatefulWidget {
+  const _RefreshButton({required this.ladderDataService});
 
-  final String? email;
+  final LadderDataService ladderDataService;
 
   @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Icon(Icons.bolt, color: Color(0xFFFFC857), size: 30),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Willkommen zurück', style: Theme.of(context).textTheme.headlineSmall),
-              Text(email ?? 'Race member', style: TextStyle(color: Colors.white.withValues(alpha: .62))),
-            ],
-          ),
-        ),
-        const Chip(avatar: Icon(Icons.circle, size: 10, color: Colors.greenAccent), label: Text('LIVE')),
-      ],
-    );
-  }
+  State<_RefreshButton> createState() => _RefreshButtonState();
 }
 
-class _DeadlineChip extends StatelessWidget {
-  const _DeadlineChip();
+class _RefreshButtonState extends State<_RefreshButton> {
+  bool _loading = false;
+
+  Future<void> _refresh() async {
+    if (_loading) return;
+    setState(() => _loading = true);
+    try {
+      await widget.ladderDataService.refreshNow();
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Daten werden aktualisiert.')));
+    } on FirebaseFunctionsException catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Refresh fehlgeschlagen: ${error.message ?? error.code}')));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => IconButton(
+        tooltip: 'Daten aktualisieren',
+        onPressed: _loading ? null : _refresh,
+        icon: _loading ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.refresh),
+      );
+}
+
+class RaceCountdown extends StatefulWidget {
+  const RaceCountdown({super.key});
+
+  @override
+  State<RaceCountdown> createState() => _RaceCountdownState();
+}
+
+class _RaceCountdownState extends State<RaceCountdown> {
+  static final _deadline = DateTime(2026, 9, 10, 23, 59);
+  late Timer _timer;
+  Duration _remaining = _deadline.difference(DateTime.now());
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() => _remaining = _deadline.difference(DateTime.now()));
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final remaining = _remaining.isNegative ? Duration.zero : _remaining;
+    final value = '${remaining.inDays}T ${remaining.inHours % 24}h ${remaining.inMinutes % 60}m ${remaining.inSeconds % 60}s';
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFF7043).withValues(alpha: .14),
-        border: Border.all(color: const Color(0xFFFF7043).withValues(alpha: .65)),
-        borderRadius: BorderRadius.circular(7),
-      ),
-      child: const Text('FINALE · 10.09 · 23:59', style: TextStyle(color: Color(0xFFFFA07A), fontSize: 10, fontWeight: FontWeight.bold)),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(color: const Color(0xFFFF7043).withValues(alpha: .12), border: Border.all(color: const Color(0xFFFF7043).withValues(alpha: .55)), borderRadius: BorderRadius.circular(8)),
+      child: Row(children: [
+        const Icon(Icons.timer_outlined, color: Color(0xFFFF7043), size: 20),
+        const SizedBox(width: 8),
+        const Text('FINALE · 10.09.2026 · 23:59', style: TextStyle(color: Color(0xFFFFA07A), fontWeight: FontWeight.bold)),
+        const Spacer(),
+        Text(value, style: const TextStyle(color: Color(0xFFFFC857), fontWeight: FontWeight.w800)),
+      ]),
     );
   }
 }
@@ -311,7 +347,9 @@ class RankingPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ranking = [...players]
-      ..sort((a, b) => (valueKey == 'elo' ? b.elo : b.gain).compareTo(valueKey == 'elo' ? a.elo : a.gain));
+      ..sort((a, b) => valueKey == 'elo'
+          ? rankScore(b).compareTo(rankScore(a))
+          : b.gain.compareTo(a.gain));
     return _Panel(
       accent: accent,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -322,10 +360,16 @@ class RankingPanel extends StatelessWidget {
           child: Row(children: [
             Text('${ranking.indexOf(player) + 1}', style: TextStyle(color: accent, fontWeight: FontWeight.bold)),
             const SizedBox(width: 12),
-            RankBadge(tier: player.rank, division: player.division, compact: true),
-            const SizedBox(width: 9),
+            PlayerAvatar(player: player, small: true),
+            const SizedBox(width: 8),
             Expanded(child: Text(player.name, style: const TextStyle(fontWeight: FontWeight.w600))),
-            Flexible(child: Text(valueKey == 'elo' ? '${player.elo} LP' : formatGain(player), textAlign: TextAlign.right, style: const TextStyle(fontSize: 11))),
+            if (valueKey == 'elo')
+              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                Text('${player.rank} ${player.division}'.trim(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                Text('${player.elo} LP', style: const TextStyle(color: Colors.white60, fontSize: 10)),
+              ])
+            else
+              Flexible(child: Text(formatGain(player), textAlign: TextAlign.right, style: const TextStyle(fontSize: 11))),
           ]),
         )),
       ]),
@@ -379,6 +423,26 @@ class PlayerCard extends StatelessWidget {
     );
   }
 
+}
+
+int rankScore(LadderPlayer player) {
+  const tierOrder = <String, int>{
+    'UNRANKED': -1,
+    'IRON': 0,
+    'BRONZE': 1,
+    'SILVER': 2,
+    'GOLD': 3,
+    'PLATINUM': 4,
+    'EMERALD': 5,
+    'DIAMOND': 6,
+    'MASTER': 7,
+    'GRANDMASTER': 8,
+    'CHALLENGER': 9,
+  };
+  const divisionOrder = <String, int>{'IV': 0, 'III': 1, 'II': 2, 'I': 3};
+  final tier = tierOrder[player.rank.toUpperCase()] ?? -1;
+  final division = divisionOrder[player.division.toUpperCase()] ?? int.tryParse(player.division) ?? 0;
+  return tier * 100000 + division * 1000 + player.elo;
 }
 
 String formatGain(LadderPlayer player) {
@@ -437,23 +501,24 @@ class RankBadge extends StatelessWidget {
 }
 
 class PlayerAvatar extends StatelessWidget {
-  const PlayerAvatar({super.key, required this.player});
+  const PlayerAvatar({super.key, required this.player, this.small = false});
 
   final LadderPlayer player;
+  final bool small;
 
   @override
   Widget build(BuildContext context) {
     final fallback = player.name.isEmpty ? '?' : player.name[0].toUpperCase();
     if (player.profileIconId == null) {
-      return CircleAvatar(backgroundColor: Colors.white10, child: Text(fallback));
+      return CircleAvatar(radius: small ? 16 : 20, backgroundColor: Colors.white10, child: Text(fallback));
     }
     return CircleAvatar(
       backgroundColor: Colors.white10,
       child: ClipOval(
         child: Image.network(
           profileIconUrl(player.profileIconId!),
-          width: 40,
-          height: 40,
+          width: small ? 32 : 40,
+          height: small ? 32 : 40,
           fit: BoxFit.cover,
           errorBuilder: (context, error, stackTrace) => Text(fallback),
         ),
@@ -480,6 +545,8 @@ class PlayerInsightPanel extends StatelessWidget {
       accent: const Color(0xFF9B8CFF),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
+          PlayerAvatar(player: player, small: true),
+          const SizedBox(width: 8),
           Expanded(child: Text(player.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
           Text('${player.matchWins}W  ${player.matchLosses}L', style: const TextStyle(color: Color(0xFF7CF7C5), fontWeight: FontWeight.bold)),
           const SizedBox(width: 10),
@@ -570,43 +637,13 @@ class _StatTile extends StatelessWidget {
     return _Panel(
       accent: accent,
       child: Row(children: [
-        Icon(icon, color: accent, size: 22),
-        const SizedBox(width: 10),
+        Icon(icon, color: accent, size: 18),
+        const SizedBox(width: 8),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
           Text(label, style: const TextStyle(fontSize: 9, color: Colors.white54, letterSpacing: .8)),
-          const SizedBox(height: 3),
-          Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: accent)),
+          const SizedBox(height: 2),
+          Text(value, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: accent)),
         ])),
-      ]),
-    );
-  }
-}
-
-class PlacementChart extends StatelessWidget {
-  const PlacementChart({super.key, required this.players});
-
-  final List<LadderPlayer> players;
-
-  @override
-  Widget build(BuildContext context) {
-    final counts = List<int>.filled(8, 0);
-    for (final player in players) {
-      for (final match in player.matchHistory) {
-        if (match.placement >= 1 && match.placement <= 8) counts[match.placement - 1]++;
-      }
-    }
-    final total = counts.fold(0, (sum, count) => sum + count);
-    return _Panel(
-      accent: const Color(0xFF7CF7C5),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          const Expanded(child: Text('PLACEMENT RADAR', style: TextStyle(color: Color(0xFF7CF7C5), fontWeight: FontWeight.bold, letterSpacing: 1.2))),
-          Text('$total MATCHES', style: const TextStyle(color: Colors.white54, fontSize: 10)),
-        ]),
-        const SizedBox(height: 16),
-        SizedBox(height: 118, child: CustomPaint(painter: _PlacementChartPainter(counts: counts), child: const SizedBox.expand())),
-        const SizedBox(height: 8),
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: List.generate(8, (index) => Text('${index + 1}', style: TextStyle(color: index < 4 ? const Color(0xFF7CF7C5) : Colors.white54, fontSize: 10)))),
       ]),
     );
   }
@@ -642,26 +679,6 @@ class TierGraph extends StatelessWidget {
       SizedBox(height: 40, child: CustomPaint(painter: _TierGraphPainter(history), child: const SizedBox.expand())),
     ]);
   }
-}
-
-class _PlacementChartPainter extends CustomPainter {
-  _PlacementChartPainter({required this.counts});
-  final List<int> counts;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final maxCount = counts.fold<int>(1, (max, value) => value > max ? value : max);
-    final width = size.width / counts.length;
-    for (var index = 0; index < counts.length; index++) {
-      final barHeight = size.height * counts[index] / maxCount;
-      final rect = Rect.fromLTWH(index * width + width * .2, size.height - barHeight, width * .6, barHeight);
-      final paint = Paint()..color = index < 4 ? const Color(0xFF7CF7C5) : const Color(0xFFFF7043);
-      canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(4)), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _PlacementChartPainter oldDelegate) => oldDelegate.counts != counts;
 }
 
 class _SparklinePainter extends CustomPainter {

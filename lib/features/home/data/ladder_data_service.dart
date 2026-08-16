@@ -1,10 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 class LadderDataService {
   LadderDataService({FirebaseFirestore? firestore})
       : _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _firestore;
+
+  Future<void> refreshNow() async {
+    await FirebaseFunctions.instanceFor(region: 'europe-west1')
+        .httpsCallable('refreshLadderDataNow')
+        .call();
+  }
 
   Stream<List<LadderPlayer>> watchPlayers() {
     return _firestore.doc('ladder_data/current').snapshots().map((snapshot) {

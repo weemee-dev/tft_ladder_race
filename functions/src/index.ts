@@ -2,6 +2,7 @@ import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { defineSecret } from "firebase-functions/params";
 import { onSchedule } from "firebase-functions/v2/scheduler";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions";
 
 initializeApp();
@@ -124,16 +125,10 @@ async function loadPlayer(
     wins: 0,
     losses: 0,
   };
-  const matchIds: string[] = [];
-  for (let page = 0; page < 10; page += 1) {
-    const pageIds = await riotGet<string[]>(
-      regionalRoute,
-      `/tft/match/v1/matches/by-puuid/${encodeURIComponent(account.puuid)}/ids?start=${page * 100}&count=100`,
-    );
-    matchIds.push(...pageIds);
-    if (pageIds.length < 100) break;
-  }
-  const recentMatchIds = [...new Set(matchIds)];
+  const recentMatchIds = await riotGet<string[]>(
+    regionalRoute,
+    `/tft/match/v1/matches/by-puuid/${encodeURIComponent(account.puuid)}/ids?count=20`,
+  );
   const matchHistoryById = new Map(
     cachedMatches.map((match) => [match.matchId, match]),
   );
@@ -178,10 +173,10 @@ async function loadPlayer(
   const raceStartTimestamp = player.raceStartAt
     ? Date.parse(player.raceStartAt)
     : Number.NEGATIVE_INFINITY;
-  const matchHistory = recentMatchIds
-    .map((matchId) => matchHistoryById.get(matchId))
+  const matchHistory = [...matchHistoryById.values()]
+    .filter((match) => (match.gameStartTimestamp ?? Number.POSITIVE_INFINITY) >= raceStartTimestamp)
+    .sort((left, right) => (right.gameStartTimestamp ?? 0) - (left.gameStartTimestamp ?? 0))
     .filter((match): match is CachedMatch => match !== undefined)
-    .filter((match) => (match.gameStartTimestamp ?? Number.POSITIVE_INFINITY) >= raceStartTimestamp);
   const placements = matchHistory.map((match) => match.placement);
   const firstPlacement = placements.at(-1) ?? null;
   const topFour = placements.filter((placement) => placement <= 4).length;
@@ -296,14 +291,7 @@ async function loadPlayerSafely(
   }
 }
 
-export const refreshLadderData = onSchedule(
-  {
-    region: "europe-west1",
-    schedule: "every 60 minutes",
-    timeZone: "Europe/Berlin",
-    secrets: [riotApiKey],
-  },
-  async () => {
+async function runLadderRefresh() {
     const config = await db.doc("race_config/players").get();
     const players = (config.data()?.players ?? []) as RacePlayer[];
     if (players.length !== 4) {
@@ -330,5 +318,28 @@ export const refreshLadderData = onSchedule(
       updatedAt: new Date().toISOString(),
     });
     logger.info("Updated ladder data", { playerCount: results.length });
+}
+
+export const refreshLadderData = onSchedule(
+  {
+    region: "europe-west1",
+    schedule: "every 60 minutes",
+    timeZone: "Europe/Berlin",
+    secrets: [riotApiKey],
+  },
+  runLadderRefresh,
+);
+
+export const refreshLadderDataNow = onCall(
+  {
+    region: "europe-west1",
+    secrets: [riotApiKey],
+  },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "Authentication required");
+    }
+    await runLadderRefresh();
+    return {ok: true};
   },
 );
