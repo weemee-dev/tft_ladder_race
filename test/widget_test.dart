@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:flutter_app_template/features/auth/presentation/sign_in_screen.dart';
+import 'package:tft_ladder_race/features/auth/presentation/sign_in_screen.dart';
 
 void main() {
   testWidgets('Sign in screen shows the anonymous login button',

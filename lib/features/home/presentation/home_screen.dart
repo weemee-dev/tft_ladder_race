@@ -15,7 +15,7 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Flutter App Template'),
+        title: const Text('TFT Ladder Race'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: Center(

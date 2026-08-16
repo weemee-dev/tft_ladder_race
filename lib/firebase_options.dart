@@ -51,28 +51,26 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyAmYDT2Ao7jftIWCJaOKWiUlew0yWk74Kg',
-    appId: '1:551757657693:android:62977c107f6543faa43fb4',
+    appId: '1:551757657693:android:ed3f07b0f2ad8c58a43fb4',
     messagingSenderId: '551757657693',
     projectId: 'tft-ladder-race',
     storageBucket: 'tft-ladder-race.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyAFViwgf6xlcnW0PWyqEn4xACoulQx1oVY',
-    appId: '1:551757657693:ios:cf8f6db264dbddbea43fb4',
+    appId: '1:551757657693:ios:eef686fefa0247efa43fb4',
     messagingSenderId: '551757657693',
     projectId: 'tft-ladder-race',
     storageBucket: 'tft-ladder-race.firebasestorage.app',
-    iosBundleId: 'com.example.tftLadderRace',
+    iosBundleId: 'com.weemee.tftLadderRace',
   );
-
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyAFViwgf6xlcnW0PWyqEn4xACoulQx1oVY',
-    appId: '1:551757657693:ios:cf8f6db264dbddbea43fb4',
+    appId: '1:551757657693:ios:eef686fefa0247efa43fb4',
     messagingSenderId: '551757657693',
     projectId: 'tft-ladder-race',
     storageBucket: 'tft-ladder-race.firebasestorage.app',
-    iosBundleId: 'com.example.tftLadderRace',
+    iosBundleId: 'com.weemee.tftLadderRace',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(

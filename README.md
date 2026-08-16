@@ -1,4 +1,4 @@
-# flutter_app_template
+# tft_ladder_race
 
 Sauberes Flutter-Basisprojekt mit Firebase-Initialisierung und Auth-Grundsetup.
 

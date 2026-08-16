@@ -1,6 +1,6 @@
 {
-    "name": "flutter_app_template",
-    "short_name": "flutter_app_template",
+    "name": "tft_ladder_race",
+    "short_name": "tft_ladder_race",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
