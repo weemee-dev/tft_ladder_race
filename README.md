@@ -124,7 +124,10 @@ benötigen den Blaze-Tarif, weil Cloud Scheduler verwendet wird.
 				 "name": "Mango",
 				 "gameName": "RiotName1",
 				 "tagLine": "EUW",
-				 "startLeaguePoints": 0
+					"startTier": "GOLD",
+					"startDivision": "III",
+					"startLeaguePoints": 10,
+					"raceStartAt": "2026-08-01T00:00:00+02:00"
 			 },
 			 {
 				 "id": "friend-2",
@@ -152,9 +155,26 @@ benötigen den Blaze-Tarif, weil Cloud Scheduler verwendet wird.
 	 ```
 
 	 `gameName` und `tagLine` müssen exakt der Riot-ID entsprechen. Der Wert
-	 `startLeaguePoints` wird beim ersten Placement Game festgehalten; aktuell
-	 muss er zunächst manuell eingetragen werden. `lpGain` wird danach von der
-	 Function als aktuelles LP minus Start-LP berechnet.
+	 `startTier`, `startDivision` und `startLeaguePoints` markieren den Startpunkt
+	 des Rennens. `raceStartAt` ist optional und dokumentiert den Startzeitpunkt.
+	 Der LP-Gain wird tierübergreifend berechnet, sodass zum Beispiel `Gold III
+	 10 LP` zu `Gold II 20 LP` als `+110 LP` dargestellt werden kann. Die Werte
+	 müssen für alle vier Spieler passend zum tatsächlichen Startstand gesetzt
+	 werden.
+
+	 `raceStartAt` ist außerdem die Grenze für die Match-Historie. Die Function
+	 lädt bis zu 1.000 Match-IDs in Seiten zu 100 Einträgen, liest den Spielbeginn
+	 aus den Match-Details und zählt nur Spiele ab diesem Zeitpunkt. Der Cache
+	 bleibt bei jedem Refresh erhalten, sodass ein Spieler beispielsweise 82
+	 Rennen und ein anderer 12 Rennen haben kann.
+
+### Riot-Bilder und Embleme
+
+Die Riot-API liefert die `profileIconId` über den Summoner-Endpunkt. Die
+Oberfläche lädt damit das Profilbild über CommunityDragon. Rang-Embleme werden
+	ebenfalls aus den öffentlichen CommunityDragon-Assets geladen. Beide Bilder
+	haben einen Fallback auf Initiale beziehungsweise Shield-Icon, falls ein CDN
+	nicht erreichbar ist. Der Riot-Key bleibt ausschließlich in der Function.
 
 4. Function und Firestore-Regeln deployen:
 
