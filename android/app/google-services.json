@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "551757657693",
+    "project_id": "tft-ladder-race",
+    "storage_bucket": "tft-ladder-race.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:551757657693:android:62977c107f6543faa43fb4",
+        "android_client_info": {
+          "package_name": "com.example.tft_ladder_race"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAmYDT2Ao7jftIWCJaOKWiUlew0yWk74Kg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
