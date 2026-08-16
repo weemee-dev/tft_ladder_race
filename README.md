@@ -1,6 +1,8 @@
 # tft_ladder_race
 
-Sauberes Flutter-Basisprojekt mit Firebase-Initialisierung und Auth-Grundsetup.
+Privates Flutter-Web-Dashboard fuer TFT Ladder Race mit Firebase-Initialisierung und Auth-Grundsetup.
+
+Die primaere Zielplattform ist aktuell der Browser. Mobile und Desktop-Plattformen bleiben als Flutter-Targets erhalten, sind aber nicht der aktuelle Entwicklungsfokus.
 
 ## Enthalten
 
@@ -20,8 +22,10 @@ Sauberes Flutter-Basisprojekt mit Firebase-Initialisierung und Auth-Grundsetup.
 2. App starten:
 
 	```bash
-	flutter run
+	flutter run -d chrome
 	```
+
+Alternativ in VS Code die Run-Konfiguration `tft_ladder_race (Web)` starten. Sie verwendet Chrome automatisch.
 
 ## Als Template fuer neue Projekte nutzen
 
