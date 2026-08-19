@@ -692,7 +692,7 @@ class _RefreshButtonState extends State<_RefreshButton> {
         );
       }
     } on FirebaseFunctionsException catch (error) {
-            if (mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
