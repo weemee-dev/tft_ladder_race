@@ -686,12 +686,13 @@ class _RefreshButtonState extends State<_RefreshButton> {
     setState(() => _loading = true);
     try {
       await widget.ladderDataService.refreshNow();
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Daten werden aktualisiert.')),
         );
+      }
     } on FirebaseFunctionsException catch (error) {
-      if (mounted)
+            if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -699,6 +700,7 @@ class _RefreshButtonState extends State<_RefreshButton> {
             ),
           ),
         );
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -734,8 +736,9 @@ class _RaceCountdownState extends State<RaceCountdown> {
   void initState() {
     super.initState();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted)
+      if (mounted) {
         setState(() => _remaining = _deadline.difference(DateTime.now()));
+      }
     });
   }
 
@@ -1286,8 +1289,9 @@ class _EloGraphData {
         final tier = point.tier.toUpperCase();
         if (timestamp == null ||
             timestamp.isBefore(startDate) ||
-            !_tierValues.containsKey(tier))
+            !_tierValues.containsKey(tier)) {
           continue;
+        }
         final date = _day(timestamp);
         byDay[date] = _DailyEloPoint(
           date: date,
@@ -1440,10 +1444,11 @@ class _DailyEloPainter extends CustomPainter {
           graph.x(point, size.width),
           graph.y(point, size.height),
         );
-        if (pointIndex == 0)
+        if (pointIndex == 0) {
           path.moveTo(offset.dx, offset.dy);
-        else
+        } else {
           path.lineTo(offset.dx, offset.dy);
+        }
       }
       canvas.drawPath(
         path,
@@ -1523,8 +1528,9 @@ int rankScore(LadderPlayer player) {
 }
 
 String formatGain(LadderPlayer player) {
-  if (player.startTier.isEmpty)
+  if (player.startTier.isEmpty) {
     return player.gain >= 0 ? '+${player.gain} LP' : '${player.gain} LP';
+  }
   final start = '${player.startTier} ${player.startDivision}'.trim();
   final current = '${player.rank} ${player.division}'.trim();
   final gain = player.gain >= 0 ? '+${player.gain}' : '${player.gain}';
