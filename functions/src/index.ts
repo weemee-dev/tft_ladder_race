@@ -69,6 +69,8 @@ const tierOrder: Record<string, number> = {
   CHALLENGER: 9,
 };
 
+const defaultRaceStartAt = "2026-08-12T00:00:00+02:00";
+
 function rankPoints(tier: string, division: string, leaguePoints: number) {
   const tierValue = tierOrder[tier] ?? 0;
   const normalizedDivision = division.toUpperCase().trim();
@@ -170,9 +172,12 @@ async function loadPlayer(
     }
   }
 
-  const raceStartTimestamp = player.raceStartAt
+  const configuredRaceStart = player.raceStartAt?.trim()
     ? Date.parse(player.raceStartAt)
-    : Number.NEGATIVE_INFINITY;
+    : Number.NaN;
+  const raceStartTimestamp = Number.isFinite(configuredRaceStart)
+    ? Math.max(configuredRaceStart, Date.parse(defaultRaceStartAt))
+    : Date.parse(defaultRaceStartAt);
   const matchHistory = [...matchHistoryById.values()]
     .filter((match) => (match.gameStartTimestamp ?? Number.POSITIVE_INFINITY) >= raceStartTimestamp)
     .sort((left, right) => (right.gameStartTimestamp ?? 0) - (left.gameStartTimestamp ?? 0))
@@ -237,7 +242,7 @@ async function loadPlayer(
     matchWins,
     matchLosses,
     winRate: placements.length === 0 ? 0 : matchWins / placements.length,
-    recentStandings: placements.slice(0, 10),
+    recentStandings: placements.slice(0, 20),
     tierHistory,
     firstPlacement,
     matchesPlayed: placements.length,
@@ -277,7 +282,7 @@ async function loadPlayerSafely(
       matchWins,
       matchLosses,
       winRate: placements.length === 0 ? 0 : matchWins / placements.length,
-      recentStandings: placements.slice(0, 10),
+      recentStandings: placements.slice(0, 20),
       tierHistory: cachedTierHistory,
       firstPlacement: placements.at(-1) ?? null,
       matchesPlayed: placements.length,

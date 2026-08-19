@@ -40,6 +40,7 @@ class LadderPlayer {
     required this.startTier,
     required this.startDivision,
     required this.startLeaguePoints,
+    required this.raceStartAt,
     required this.gain,
     required this.streak,
     required this.average,
@@ -100,6 +101,7 @@ class LadderPlayer {
       startTier: data['startTier'] as String? ?? '',
       startDivision: data['startDivision'] as String? ?? '',
       startLeaguePoints: (data['startLeaguePoints'] as num? ?? 0).toInt(),
+      raceStartAt: data['raceStartAt'] as String? ?? '',
       gain: (data['lpGain'] as num? ?? 0).toInt(),
       streak: streak,
       average: average,
@@ -128,6 +130,7 @@ class LadderPlayer {
   final String startTier;
   final String startDivision;
   final int startLeaguePoints;
+  final String raceStartAt;
   final int gain;
   final int streak;
   final double average;
@@ -198,16 +201,18 @@ class LadderSynergy {
 }
 
 class TierPoint {
-  const TierPoint({required this.tier, required this.division, required this.leaguePoints});
+  const TierPoint({required this.timestamp, required this.tier, required this.division, required this.leaguePoints});
 
   factory TierPoint.fromMap(Map<String, dynamic> data) {
     return TierPoint(
+      timestamp: data['timestamp'] as String? ?? '',
       tier: data['tier'] as String? ?? 'UNRANKED',
       division: data['division'] as String? ?? '',
       leaguePoints: (data['leaguePoints'] as num? ?? 0).toInt(),
     );
   }
 
+  final String timestamp;
   final String tier;
   final String division;
   final int leaguePoints;
