@@ -221,7 +221,7 @@ async function loadPlayer(
         player.startDivision ?? "",
         player.startLeaguePoints ?? 0,
       )
-    : rank.leaguePoints - (player.startLeaguePoints ?? rank.leaguePoints);
+    : rank.leaguePoints - (player.startLeaguePoints ?? 0);
 
   return {
     ...player,
