@@ -322,8 +322,8 @@ class _DailyProgressCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: progress.days.map((day) {
               final barHeight = maxMatches == 0
-                  ? 4.0
-                  : 8 + (day.matches / maxMatches) * 42;
+                  ? 16.0
+                  : 14 + (day.matches / maxMatches) * 40;
               return Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 2),
@@ -335,11 +335,20 @@ class _DailyProgressCard extends StatelessWidget {
                           alignment: Alignment.bottomCenter,
                           child: Container(
                             height: barHeight,
+                            alignment: Alignment.center,
                             decoration: BoxDecoration(
                               color: day.matches == 0
                                   ? Colors.white10
                                   : accent.withValues(alpha: .75),
                               borderRadius: BorderRadius.circular(3),
+                            ),
+                            child: Text(
+                              '${day.matches}',
+                              style: const TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                         ),
