@@ -763,31 +763,54 @@ class _RaceCountdownState extends State<RaceCountdown> {
     final value =
         '${remaining.inDays}T ${remaining.inHours % 24}h ${remaining.inMinutes % 60}m ${remaining.inSeconds % 60}s';
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: const Color(0xFFFF7043).withValues(alpha: .12),
+        color: const Color(0xFF202833),
         border: Border.all(
-          color: const Color(0xFFFF7043).withValues(alpha: .55),
+          color: Colors.white12,
         ),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(7),
       ),
       child: Row(
         children: [
-          const Icon(Icons.timer_outlined, color: Color(0xFFFF7043), size: 20),
-          const SizedBox(width: 8),
-          const Text(
-            'FINALE · 10.09.2026 · 23:59',
-            style: TextStyle(
-              color: Color(0xFFFFA07A),
-              fontWeight: FontWeight.bold,
+          Container(
+            width: 3,
+            height: 36,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFF7043),
+              borderRadius: BorderRadius.circular(2),
             ),
           ),
-          const Spacer(),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Color(0xFFFFC857),
-              fontWeight: FontWeight.w800,
+          const SizedBox(width: 9),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'FINALE  ·  10.09.2026  ·  23:59 MESZ',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white60,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: .6,
+                  ),
+                ),
+                const SizedBox(height: 1),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFFFFC857),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: .4,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
