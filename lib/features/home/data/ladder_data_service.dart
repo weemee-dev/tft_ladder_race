@@ -3,29 +3,54 @@ import 'package:cloud_functions/cloud_functions.dart';
 
 class LadderDataService {
   LadderDataService({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+    : _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _firestore;
 
   Future<void> refreshNow() async {
-    await FirebaseFunctions.instanceFor(region: 'europe-west1')
-        .httpsCallable('refreshLadderDataNow')
-        .call();
+    await FirebaseFunctions.instanceFor(
+      region: 'europe-west1',
+    ).httpsCallable('refreshLadderDataNow').call();
   }
 
-  Stream<List<LadderPlayer>> watchPlayers() {
+  Stream<LadderDataSnapshot> watchLadderData() {
     return _firestore.doc('ladder_data/current').snapshots().map((snapshot) {
       final data = snapshot.data();
       final players = data?['players'];
       if (players is! List) {
-        return <LadderPlayer>[];
+        return LadderDataSnapshot(
+          players: const [],
+          updatedAt: _parseUpdatedAt(data?['updatedAt']),
+        );
       }
-        return players
-          .whereType<Map>()
-          .map((player) => LadderPlayer.fromMap(Map<String, dynamic>.from(player)))
-          .toList();
+      return LadderDataSnapshot(
+        players: players
+            .whereType<Map>()
+            .map(
+              (player) =>
+                  LadderPlayer.fromMap(Map<String, dynamic>.from(player)),
+            )
+            .toList(),
+        updatedAt: _parseUpdatedAt(data?['updatedAt']),
+      );
     });
   }
+
+  Stream<List<LadderPlayer>> watchPlayers() =>
+      watchLadderData().map((snapshot) => snapshot.players);
+
+  DateTime? _parseUpdatedAt(Object? value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is String) return DateTime.tryParse(value)?.toLocal();
+    return null;
+  }
+}
+
+class LadderDataSnapshot {
+  const LadderDataSnapshot({required this.players, this.updatedAt});
+
+  final List<LadderPlayer> players;
+  final DateTime? updatedAt;
 }
 
 class LadderPlayer {
@@ -63,19 +88,22 @@ class LadderPlayer {
         .whereType<num>()
         .map((value) => value.toInt())
         .toList();
-      final history = (data['matchHistory'] as List<dynamic>? ?? [])
+    final history = (data['matchHistory'] as List<dynamic>? ?? [])
         .whereType<Map>()
         .map((match) => LadderMatch.fromMap(Map<String, dynamic>.from(match)))
         .toList();
-      final synergies = (data['synergies'] as List<dynamic>? ?? [])
+    final synergies = (data['synergies'] as List<dynamic>? ?? [])
         .whereType<Map>()
-        .map((synergy) => LadderSynergy.fromMap(Map<String, dynamic>.from(synergy)))
+        .map(
+          (synergy) =>
+              LadderSynergy.fromMap(Map<String, dynamic>.from(synergy)),
+        )
         .toList();
-      final recentStandings = (data['recentStandings'] as List<dynamic>? ?? [])
+    final recentStandings = (data['recentStandings'] as List<dynamic>? ?? [])
         .whereType<num>()
         .map((value) => value.toInt())
         .toList();
-      final tierHistory = (data['tierHistory'] as List<dynamic>? ?? [])
+    final tierHistory = (data['tierHistory'] as List<dynamic>? ?? [])
         .whereType<Map>()
         .map((point) => TierPoint.fromMap(Map<String, dynamic>.from(point)))
         .toList();
@@ -105,7 +133,8 @@ class LadderPlayer {
       gain: (data['lpGain'] as num? ?? 0).toInt(),
       streak: streak,
       average: average,
-      matchesPlayed: (data['matchesPlayed'] as num? ?? placements.length).toInt(),
+      matchesPlayed: (data['matchesPlayed'] as num? ?? placements.length)
+          .toInt(),
       topFourRate: (data['topFourRate'] as num? ?? 0).toDouble(),
       firstOrEighth: (data['firstOrEighth'] as num? ?? 0).toInt(),
       lastPlaces: placements.take(5).toList(),
@@ -114,7 +143,9 @@ class LadderPlayer {
       matchWins: (data['matchWins'] as num? ?? 0).toInt(),
       matchLosses: (data['matchLosses'] as num? ?? 0).toInt(),
       winRate: (data['winRate'] as num? ?? 0).toDouble(),
-      recentStandings: recentStandings.isEmpty ? placements.take(10).toList() : recentStandings,
+      recentStandings: recentStandings.isEmpty
+          ? placements.take(10).toList()
+          : recentStandings,
       tierHistory: tierHistory,
       error: data['error'] as String?,
     );
@@ -185,7 +216,11 @@ class LadderMatch {
 }
 
 class LadderSynergy {
-  const LadderSynergy({required this.name, required this.matches, required this.averagePlacement});
+  const LadderSynergy({
+    required this.name,
+    required this.matches,
+    required this.averagePlacement,
+  });
 
   factory LadderSynergy.fromMap(Map<String, dynamic> data) {
     return LadderSynergy(
@@ -201,7 +236,12 @@ class LadderSynergy {
 }
 
 class TierPoint {
-  const TierPoint({required this.timestamp, required this.tier, required this.division, required this.leaguePoints});
+  const TierPoint({
+    required this.timestamp,
+    required this.tier,
+    required this.division,
+    required this.leaguePoints,
+  });
 
   factory TierPoint.fromMap(Map<String, dynamic> data) {
     return TierPoint(

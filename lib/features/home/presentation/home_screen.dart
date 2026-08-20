@@ -43,8 +43,8 @@ class HomeScreen extends StatelessWidget {
           const SizedBox(width: 12),
         ],
       ),
-      body: StreamBuilder<List<LadderPlayer>>(
-        stream: ladderDataService.watchPlayers(),
+      body: StreamBuilder<LadderDataSnapshot>(
+        stream: ladderDataService.watchLadderData(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return Center(
@@ -61,14 +61,16 @@ class HomeScreen extends StatelessWidget {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (snapshot.data == null || snapshot.data!.isEmpty) {
+          final ladderData = snapshot.data;
+          if (ladderData == null || ladderData.players.isEmpty) {
             return const Center(
               child: Text('Noch keine Ladder-Daten synchronisiert.'),
             );
           }
           return DashboardBody(
             ladderDataService: ladderDataService,
-            livePlayers: snapshot.data,
+            livePlayers: ladderData.players,
+            lastUpdated: ladderData.updatedAt,
           );
         },
       ),
@@ -81,10 +83,12 @@ class DashboardBody extends StatelessWidget {
     super.key,
     required this.ladderDataService,
     this.livePlayers,
+    this.lastUpdated,
   });
 
   final LadderDataService ladderDataService;
   final List<LadderPlayer>? livePlayers;
+  final DateTime? lastUpdated;
 
   @override
   Widget build(BuildContext context) {
@@ -103,7 +107,10 @@ class DashboardBody extends StatelessWidget {
                 children: [
                   const Expanded(child: RaceCountdown()),
                   const SizedBox(width: 10),
-                  _RefreshButton(ladderDataService: ladderDataService),
+                  _RefreshButton(
+                    ladderDataService: ladderDataService,
+                    lastUpdated: lastUpdated,
+                  ),
                 ],
               ),
               const SizedBox(height: 20),
@@ -679,9 +686,10 @@ class _RaceAwards {
 }
 
 class _RefreshButton extends StatefulWidget {
-  const _RefreshButton({required this.ladderDataService});
+  const _RefreshButton({required this.ladderDataService, this.lastUpdated});
 
   final LadderDataService ladderDataService;
+  final DateTime? lastUpdated;
 
   @override
   State<_RefreshButton> createState() => _RefreshButtonState();
@@ -716,17 +724,61 @@ class _RefreshButtonState extends State<_RefreshButton> {
   }
 
   @override
-  Widget build(BuildContext context) => IconButton(
-    tooltip: 'Daten aktualisieren',
-    onPressed: _loading ? null : _refresh,
-    icon: _loading
-        ? const SizedBox(
-            width: 18,
-            height: 18,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          )
-        : const Icon(Icons.refresh),
-  );
+  Widget build(BuildContext context) {
+    final updatedAt = widget.lastUpdated;
+    final timeLabel = updatedAt == null ? '--:--' : _formatTime(updatedAt);
+    final tooltip = updatedAt == null
+        ? 'Noch kein Update ausgeführt'
+        : 'Zuletzt aktualisiert am ${_formatUpdatedAt(updatedAt)}';
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          tooltip: 'Daten aktualisieren',
+          onPressed: _loading ? null : _refresh,
+          icon: _loading
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.refresh),
+        ),
+        Tooltip(
+          message: tooltip,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.schedule,
+                size: 11,
+                color: Colors.white.withValues(alpha: 0.45),
+              ),
+              const SizedBox(width: 2),
+              Text(
+                timeLabel,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: Colors.white.withValues(alpha: 0.55),
+                  fontSize: 10,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _formatTime(DateTime value) {
+    String twoDigits(int number) => number.toString().padLeft(2, '0');
+    return '${twoDigits(value.hour)}:${twoDigits(value.minute)}';
+  }
+
+  String _formatUpdatedAt(DateTime value) {
+    String twoDigits(int number) => number.toString().padLeft(2, '0');
+    return '${twoDigits(value.day)}.${twoDigits(value.month)}. '
+        '${twoDigits(value.hour)}:${twoDigits(value.minute)}';
+  }
 }
 
 class RaceCountdown extends StatefulWidget {
@@ -766,9 +818,7 @@ class _RaceCountdownState extends State<RaceCountdown> {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
         color: const Color(0xFF202833),
-        border: Border.all(
-          color: Colors.white12,
-        ),
+        border: Border.all(color: Colors.white12),
         borderRadius: BorderRadius.circular(7),
       ),
       child: Row(
