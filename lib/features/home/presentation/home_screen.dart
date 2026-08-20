@@ -1129,6 +1129,7 @@ class EloTimelineGraph extends StatelessWidget {
                           top: (y - 6).clamp(4.0, 254.0),
                           child: Tooltip(
                             message: point.label,
+                            triggerMode: TooltipTriggerMode.tap,
                             waitDuration: const Duration(milliseconds: 150),
                             child: Container(
                               width: 12,
@@ -1157,6 +1158,7 @@ class EloTimelineGraph extends StatelessWidget {
                         top: (y - 18).clamp(0.0, 244.0),
                         child: Tooltip(
                           message: point.label,
+                          triggerMode: TooltipTriggerMode.tap,
                           child: PlayerAvatar(
                             player: entry.value.player,
                             small: true,
